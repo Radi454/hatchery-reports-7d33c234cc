@@ -21,7 +21,7 @@ The page does not include snapshots or demo data. If configuration is absent, it
 
 ## Configuration and GitHub Pages
 
-Set the repository variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_KEY` to the Supabase project URL and public publishable key. These are browser-visible public configuration values; never use a service-role key here. The Pages workflow builds at `/hatchery-insights/` when the `main` branch is pushed or the workflow is manually run. GitHub Pages must be configured to use GitHub Actions.
+Set the repository variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_KEY` to the Supabase project URL and public publishable key. These are browser-visible public configuration values; never use a service-role key here. The Pages workflow builds at `/<repository-name>/` when the `main` branch is pushed or the workflow is manually run. GitHub Pages must be configured to use GitHub Actions.
 
 For local preview, `VITE_BASE_PATH=/` serves from the site root. `VITE_BASE_PATH` may be set to another path for a different deployment target.
 
