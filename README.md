@@ -21,7 +21,7 @@ The page does not include snapshots or demo data. If configuration is absent, it
 
 ## Configuration and GitHub Pages
 
-Current deployment (2026-10-18): https://radi454.github.io/hatchery-reports-7d33c234cc/
+Current deployment: https://hatchery-reports-radi.creamtoad1.chatgpt.site/ . The active source checkout is `../sites-hatchery`; preserve its `.openai/hosting.json` identity and private audience. GitHub Pages publishing is retired and disabled.
 The former `/hatchery-insights/` Pages URL is retired and returned HTTP 404 after deployment. The repository remains public; changing the URL is not an access-control mechanism. Supabase Auth redirects now allow the current dashboard URL and retain the separate lab dashboard URL.
 
 Set the repository variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_KEY` to the Supabase project URL and public publishable key. These are browser-visible public configuration values; never use a service-role key here. The Pages workflow builds at `/<repository-name>/` when the `main` branch is pushed or the workflow is manually run. GitHub Pages must be configured to use GitHub Actions.
