@@ -78,17 +78,38 @@ export function estimateAmpoules(summary, rates) {
   };
 }
 
+// Only explicit, source-reviewed application keys unite reports. Equal names,
+// dates or counts alone never create a shared application.
+export const applicationKey = row => row.application_key ? `application:${row.application_key}` : `report:${row.id}`;
+export function uniqueBirdRows(rows) {
+  const applications = new Map();
+  for (const row of rows) {
+    const key = applicationKey(row);
+    const previous = applications.get(key);
+    if (previous && Number(previous.bird_count) !== Number(row.bird_count)) {
+      throw new Error('تعارض في عدد الطيور بين تقارير مرتبطة بنفس الدفعة؛ يلزم مراجعتها.');
+    }
+    if (!previous) applications.set(key, row);
+  }
+  return [...applications.values()];
+}
+export const totalBirds = rows => uniqueBirdRows(rows).reduce((sum, row) => sum + (Number(row.bird_count) || 0), 0);
+
 export function aggregateDashboard(rows) {
   const uniqueRows = [...new Map(rows.map(row => [row.id, row])).values()];
   const customerByCode = new Map();
   const productById = new Map();
   const regionByName = new Map();
   const competitorNames = new Set();
-  let birds = 0;
+  const birds = totalBirds(uniqueRows);
+  const customerApplications = new Set();
+  const regionApplications = new Set();
+  const productApplications = new Set();
+  const productRegionApplications = new Set();
 
   for (const row of uniqueRows) {
     const birdCount = Number(row.bird_count) || 0;
-    birds += birdCount;
+    const application = applicationKey(row);
     const customerKey = row.customer_code || `unassigned:${row.id}`;
     const knownCustomer = isKnownCustomer(row);
     const customer = customerByCode.get(customerKey) ?? {
@@ -100,7 +121,9 @@ export function aggregateDashboard(rows) {
     };
     if (knownCustomer) {
       customer.batches += 1;
-      customer.birds += birdCount;
+      const key = JSON.stringify([customerKey, application]);
+      if (!customerApplications.has(key)) customer.birds += birdCount;
+      customerApplications.add(key);
       if (row.region) customer.regions.add(row.region);
       customerByCode.set(customerKey, customer);
     }
@@ -108,7 +131,9 @@ export function aggregateDashboard(rows) {
     const regionKey = row.region || '__unassigned__';
     const region = regionByName.get(regionKey) ?? { name: row.region, status: row.region_status, batches: 0, birds: 0 };
     region.batches += 1;
-    region.birds += birdCount;
+    const regionApplication = JSON.stringify([regionKey, application]);
+    if (!regionApplications.has(regionApplication)) region.birds += birdCount;
+    regionApplications.add(regionApplication);
     regionByName.set(regionKey, region);
 
     const seenProducts = new Set();
@@ -130,7 +155,10 @@ export function aggregateDashboard(rows) {
         customers: new Set(),
         regions: new Map(),
       };
-      if (firstInReport) { product.batches += 1; product.birds += birdCount; }
+      if (firstInReport) product.batches += 1;
+      const productApplication = JSON.stringify([key, application]);
+      if (!productApplications.has(productApplication)) product.birds += birdCount;
+      productApplications.add(productApplication);
       if (!item.is_competitor) {
         if (item.ampoule_count == null) product.ampoulesIncomplete = true;
         else {
@@ -140,7 +168,10 @@ export function aggregateDashboard(rows) {
       }
       if (knownCustomer) product.customers.add(customerKey);
       const productRegion = product.regions.get(regionKey) ?? { name: row.region, batches: 0, birds: 0 };
-      if (firstInReport) { productRegion.batches += 1; productRegion.birds += birdCount; }
+      if (firstInReport) productRegion.batches += 1;
+      const productRegionApplication = JSON.stringify([key, regionKey, application]);
+      if (!productRegionApplications.has(productRegionApplication)) productRegion.birds += birdCount;
+      productRegionApplications.add(productRegionApplication);
       product.regions.set(regionKey, productRegion);
       productById.set(key, product);
     }

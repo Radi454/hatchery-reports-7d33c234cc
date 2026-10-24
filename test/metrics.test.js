@@ -150,3 +150,37 @@ test('customer labels preserve saved single and regional identities without addi
   assert.equal(customerLabel({ ...known, region: null }), 'Single customer');
   assert.equal(customerLabel({ customer_known: false, customer_code: 'unknown:1', customer: 'غير محدد' }), 'عميل غير محدد');
 });
+
+test('shared physical flock keeps regional product ownership without doubling overall birds', () => {
+  const shared = [
+    { id: 'ibd', application_key: 'approved-flock', date: '2026-01-06', bird_count: 25000, customer_known: true, customer_code: 'Y-SH', customer: 'Yaser', region: 'Sharqia', products: [{ id: 'ibd', name: 'Procerta IBD' }] },
+    { id: 'spray', application_key: 'approved-flock', date: '2026-01-06', bird_count: 25000, customer_known: true, customer_code: 'Y-UP', customer: 'Yaser', region: 'Upper Egypt', products: [{ id: 'primer', name: 'IB Primer' }, { id: 'v4', name: 'V4' }] },
+  ];
+  const total = aggregateDashboard(shared);
+  assert.equal(total.birds, 25000);
+  assert.equal(total.batches, 2);
+  assert.equal(total.regionByName.get('Sharqia').birds, 25000);
+  assert.equal(total.regionByName.get('Upper Egypt').birds, 25000);
+  for (const product of total.productById.values()) assert.equal(product.birds, 25000);
+  assert.equal(aggregateDashboard(filterRows(shared, { region: 'Upper Egypt' })).birds, 25000);
+  assert.equal(aggregateDashboard(filterRows(shared, { productId: 'primer' })).birds, 25000);
+  assert.equal(aggregateDashboard([...shared, { ...shared[0], id: 'independent', application_key: null }]).birds, 50000);
+});
+
+test('multiple reports within one region/customer count its shared flock once', () => {
+  const shared = [
+    { id: 'one', application_key: 'same', date: '2026-01-06', bird_count: 25000, customer_code: 'Y', customer: 'Yaser', region: 'Sharqia', products: [{ id: 'v', name: 'V' }] },
+    { id: 'two', application_key: 'same', date: '2026-01-06', bird_count: 25000, customer_code: 'Y', customer: 'Yaser', region: 'Sharqia', products: [{ id: 'v', name: 'V' }] },
+  ];
+  const total = aggregateDashboard(shared);
+  assert.equal(total.customerByCode.get('Y').birds, 25000);
+  assert.equal(total.regionByName.get('Sharqia').birds, 25000);
+  assert.equal(total.productById.get('v::zoetis').birds, 25000);
+});
+
+test('contradictory counts on an approved shared application are rejected, not silently selected', () => {
+  assert.throws(() => aggregateDashboard([
+    { id: 'one', application_key: 'same', bird_count: 25000 },
+    { id: 'two', application_key: 'same', bird_count: 26000 },
+  ]), /تعارض/);
+});

@@ -1,6 +1,6 @@
 import './styles.css';
 import { supabase, supabaseConfigured, supabaseConfigError } from './supabase.js';
-import { aggregateDashboard, availableMonths, buildAmpouleRates, customerLabel, durationMinutes, estimateAmpoules, filterRows, getReportProducts, isKnownCustomer, latestAvailableYear } from './dashboard-data.js';
+import { uniqueBirdRows, totalBirds, aggregateDashboard, availableMonths, buildAmpouleRates, customerLabel, durationMinutes, estimateAmpoules, filterRows, getReportProducts, isKnownCustomer, latestAvailableYear } from './dashboard-data.js';
 import { PRODUCT_TYPE_ORDER, productDisplay } from './product-catalog.js';
 
 const app = document.querySelector('#app');
@@ -325,8 +325,8 @@ function renderDashboard() {
     </div></section>
     ${state.error ? `<div class="alert error" role="alert">${escapeHtml(state.error)} <button id="retry" class="button quiet">إعادة المحاولة</button></div>` : ''}
     <div class="coverage-line"><span>${number(rows.length)} من ${number(state.total)} تقرير</span><span>للمراجعة: ${number(pendingReviewCount)}</span><span>إجمالي المصدر: ${number(state.sourceReportCount ?? state.total)} · دون عدد طيور: ${number(state.excludedInvalid ?? 0)}</span><span>الفترة: ${dateLabel(state.dateMin)} – ${dateLabel(state.dateMax)}</span><span>آخر تحديث: ${state.refreshedAt ? new Date(state.refreshedAt).toLocaleString('ar-EG') : '—'}</span></div>
-    <section class="metrics-grid" aria-label="المؤشرات"><article class="metric-card"><span>الطيور</span><strong>${number(stats.birds)}</strong><small>مرة لكل تقرير</small></article><article class="metric-card"><span>التقارير</span><strong>${number(stats.batches)}</strong></article><article class="metric-card"><span>العملاء</span><strong>${number(stats.customers)}</strong></article><article class="metric-card"><span>المنتجات</span><strong>${number(stats.productById.size)}</strong></article></section>
-    <section class="panel products-panel"><div class="section-heading"><div><h2>المنتجات</h2></div><label class="inline-select">المنتج<select id="product-detail"><option value="">اختر منتجًا</option>${productDetailItems}</select></label></div><div class="overlap-note"><b>تداخل المنتجات:</b> قد تضم الدفعة عدة منتجات؛ لا تُجمع أعداد الطيور بينها. تظهر منتجات المنافسين بالاسم فقط.</div><div class="products-grid"><div class="table-scroll"><table><thead><tr><th>المنتج</th><th>طيور مغطاة</th><th>تقارير</th><th>عملاء</th><th>أمبولات</th></tr></thead><tbody>${renderProductRows(stats.productById)}</tbody></table></div><div id="product-detail-panel" class="product-detail"><div class="empty-state">اختر منتجًا للتفاصيل.</div></div></div></section>
+    <section class="metrics-grid" aria-label="المؤشرات"><article class="metric-card"><span>الطيور</span><strong>${number(stats.birds)}</strong><small>مرة لكل دفعة فعلية</small></article><article class="metric-card"><span>التقارير</span><strong>${number(stats.batches)}</strong></article><article class="metric-card"><span>العملاء</span><strong>${number(stats.customers)}</strong></article><article class="metric-card"><span>المنتجات</span><strong>${number(stats.productById.size)}</strong></article></section>
+    <section class="panel products-panel"><div class="section-heading"><div><h2>المنتجات</h2></div><label class="inline-select">المنتج<select id="product-detail"><option value="">اختر منتجًا</option>${productDetailItems}</select></label></div><div class="overlap-note"><b>تداخل المنتجات:</b> قد تضم الدفعة عدة منتجات؛ لا تُجمع أعداد الطيور بينها. قد تتوزع تقارير الدفعة نفسها بين مناطق؛ إجمالي الطيور يحسب الدفعة مرة واحدة، وأرقام المناطق قد تتداخل. تظهر منتجات المنافسين بالاسم فقط.</div><div class="products-grid"><div class="table-scroll"><table><thead><tr><th>المنتج</th><th>طيور مغطاة</th><th>تقارير</th><th>عملاء</th><th>أمبولات</th></tr></thead><tbody>${renderProductRows(stats.productById)}</tbody></table></div><div id="product-detail-panel" class="product-detail"><div class="empty-state">اختر منتجًا للتفاصيل.</div></div></div></section>
     <section class="charts-grid"><article class="panel"><div class="section-heading"><div><h2>الطيور حسب الشهر</h2></div></div><div id="overall-chart">${renderBirdChart(rows, 'overall')}</div></article><article class="panel"><h2>التقارير حسب المنطقة</h2><div id="region-bars">${renderRegionBars(stats.regionByName)}</div></article></section>
     <section class="panel customer-panel"><div class="section-heading"><div><h2>العملاء</h2></div><div class="customer-search"><label for="customer-search">بحث</label><input id="customer-search" type="search" value="${escapeHtml(state.search)}" placeholder="اسم أو كود العميل"></div></div><div class="customer-layout"><aside id="customer-list" class="customer-list"></aside><div id="customer-profile" class="customer-profile"><div class="empty-state">اختر عميلًا.</div></div></div></section>
     <section class="panel reports-panel"><div class="section-heading"><div><h2>التقارير الأخيرة</h2></div><div class="pagination"><button id="previous-page" class="button quiet" ${state.page === 0 ? 'disabled' : ''}>السابق</button><span>${state.page + 1} / ${Math.max(1, Math.ceil(rows.length / state.pageSize))}</span><button id="next-page" class="button quiet" ${(state.page + 1) * state.pageSize >= rows.length ? 'disabled' : ''}>التالي</button></div></div><div class="table-scroll"><table><thead><tr><th>التقرير</th><th>التاريخ</th><th>العميل / المنطقة</th><th>المفرخ</th><th>الطيور</th><th>المنتجات المسجلة</th><th>الحالة</th><th>تفاصيل</th></tr></thead><tbody>${renderReportRows(rows)}</tbody></table></div></section>`;
@@ -377,7 +377,7 @@ function renderRegionBars(regions) {
 function renderBirdChart(rows, suffix = '') {
   if (!rows.length) return '<div class="empty-state">لا توجد بيانات.</div>';
   const monthly = new Map();
-  for (const row of rows) {
+  for (const row of uniqueBirdRows(rows)) {
     const key = monthKey(row.date);
     if (!key) continue;
     monthly.set(key, (monthly.get(key) || 0) + (Number(row.bird_count) || 0));
@@ -408,23 +408,24 @@ function renderProductDetail(rows) {
   }
 
   const uniqueProductRows = associated.map(row => ({ ...row, bird_count: Number(row.bird_count) || 0 }));
-  const productBirds = uniqueProductRows.reduce((sum, row) => sum + row.bird_count, 0);
+  const productBirds = totalBirds(uniqueProductRows);
   const customers = new Map();
   const regions = new Map();
   associated.forEach(row => {
     if (isKnownCustomer(row)) {
       const key = customerIdentity(row);
-      const entry = customers.get(key) || { label: customerLabel(row), birds: 0, batches: 0 };
-      entry.birds += Number(row.bird_count) || 0;
+      const entry = customers.get(key) || { label: customerLabel(row), birds: 0, batches: 0, applicationRows: [] };
+      entry.applicationRows.push(row);
       entry.batches += 1;
       customers.set(key, entry);
     }
     const regionKey = row.region || '__unassigned__';
-    const region = regions.get(regionKey) || { label: row.region || 'منطقة غير محددة', birds: 0, batches: 0 };
-    region.birds += Number(row.bird_count) || 0;
+    const region = regions.get(regionKey) || { label: row.region || 'منطقة غير محددة', birds: 0, batches: 0, applicationRows: [] };
+    region.applicationRows.push(row);
     region.batches += 1;
     regions.set(regionKey, region);
   });
+  for (const group of [...customers.values(), ...regions.values()]) group.birds = totalBirds(group.applicationRows);
   const topCustomers = [...customers.values()].sort((a, b) => b.birds - a.birds).slice(0, 5);
   const regionRows = [...regions.values()].sort((a, b) => b.birds - a.birds);
   panel.innerHTML = `<div class="detail-title"><div><h3>${escapeHtml(product.name)}</h3></div><button class="button quiet" id="clear-product-detail">مسح</button></div><div class="detail-kpis"><div><small>الطيور</small><b>${number(productBirds)}</b></div><div><small>التقارير</small><b>${number(associated.length)}</b></div><div><small>العملاء</small><b>${number(customers.size)}</b></div></div><div class="detail-columns"><div><h4>الطيور حسب الشهر</h4>${renderBirdChart(uniqueProductRows, 'product')}</div><div><h4>العملاء والمناطق</h4><div class="mini-list">${topCustomers.map(row => `<div><span>${escapeHtml(row.label)}</span><b>${number(row.birds)} طائر · ${row.batches} تقارير</b></div>`).join('') || '<p>لا يوجد عملاء.</p>'}</div><div class="mini-list region-list">${regionRows.map(row => `<div><span>${escapeHtml(row.label)}</span><b>${number(row.birds)} طائر · ${row.batches}</b></div>`).join('')}</div></div></div>`;
@@ -444,7 +445,7 @@ function renderCustomerAnalysis(rows) {
     if (row.region) current.regions.add(row.region);
     grouped.set(key, current);
   });
-  const entries = [...grouped.values()].map(entry => ({ ...entry, birds: entry.rows.reduce((sum, row) => sum + (Number(row.bird_count) || 0), 0), latest: entry.rows.reduce((latest, row) => !latest || row.date > latest ? row.date : latest, null) })).sort((a, b) => b.birds - a.birds);
+  const entries = [...grouped.values()].map(entry => ({ ...entry, birds: totalBirds(entry.rows), latest: entry.rows.reduce((latest, row) => !latest || row.date > latest ? row.date : latest, null) })).sort((a, b) => b.birds - a.birds);
   const searched = entries.filter(entry => `${entry.name} ${entry.code} ${[...entry.regions].join(' ')}`.toLocaleLowerCase().includes(state.search.toLocaleLowerCase()));
   if (!searched.some(entry => entry.code === state.selectedCustomerCode)) state.selectedCustomerCode = searched[0]?.code || '';
   list.innerHTML = searched.length ? searched.map(entry => `<button class="customer-result ${entry.code === state.selectedCustomerCode ? 'active' : ''}" data-customer-code="${escapeHtml(entry.code)}"><strong>${escapeHtml(entry.name)}</strong><small>${escapeHtml([...entry.regions].join('، ') || 'منطقة غير محددة')}</small><span>${number(entry.birds)} طائر · ${entry.rows.length} تقرير</span></button>`).join('') : '<div class="empty-state">لا توجد نتائج.</div>';
@@ -464,11 +465,12 @@ function renderCustomerAnalysis(rows) {
   customerRows.forEach(row => {
     const key = monthKey(row.date);
     if (!key) return;
-    const item = monthValues.get(key) || { birds: 0, batches: 0 };
-    item.birds += Number(row.bird_count) || 0;
+    const item = monthValues.get(key) || { birds: 0, batches: 0, applicationRows: [] };
+    item.applicationRows.push(row);
     item.batches += 1;
     monthValues.set(key, item);
   });
+  for (const group of monthValues.values()) group.birds = totalBirds(group.applicationRows);
   profile.innerHTML = `<div class="profile-head"><div><h3>${escapeHtml(selected.name)}</h3><p>الكود: ${escapeHtml(selected.code)} · ${escapeHtml([...selected.regions].join('، ') || 'منطقة غير محددة')}</p></div><div class="segmented" role="group" aria-label="المقياس الشهري"><button data-customer-metric="birds" aria-pressed="${state.customerMetric === 'birds'}">الطيور</button><button data-customer-metric="batches" aria-pressed="${state.customerMetric === 'batches'}">التقارير</button></div></div><div class="customer-kpis"><div><small>الطيور</small><b>${number(selected.birds)}</b></div><div><small>التقارير</small><b>${number(customerRows.length)}</b></div><div><small>آخر تقرير</small><b>${dateLabel(latestDate)}</b></div><div><small>أشهر النشاط</small><b>${number(activeMonths)}</b></div></div><div class="customer-month-chart"><div class="section-heading"><h4>النشاط الشهري</h4><span>${state.customerMetric === 'birds' ? 'طيور' : 'تقارير'}</span></div>${renderCustomerChart(monthValues, state.customerMetric)}</div><div class="customer-detail-grid"><div><h4>المنتجات</h4><div class="table-scroll"><table><thead><tr><th>المنتج</th><th>طيور المنتج</th><th>تقارير</th><th>أمبولات</th></tr></thead><tbody>${products.map(product => `<tr><td>${escapeHtml(product.name)}</td><td>${number(product.birds)}</td><td>${number(product.reports)}</td><td>${ampouleSummary(product)}</td></tr>`).join('') || '<tr><td colspan="4">لا توجد منتجات.</td></tr>'}</tbody></table></div>${competitorNames.size ? `<p class="muted">منتجات منافسة: ${[...competitorNames].map(escapeHtml).join('، ')}.</p>` : ''}</div><div><h4>الدفعات</h4><div class="table-scroll"><table><thead><tr><th>التاريخ</th><th>الطيور</th><th>التفاصيل</th></tr></thead><tbody>${[...customerRows].reverse().map(row => `<tr><td>${dateLabel(row.date)}</td><td>${number(row.bird_count)}</td><td><details><summary>التفاصيل</summary><div class="batch-expansion"><p>المرجع: ${escapeHtml(row.reference || row.printed_report_number || '—')}</p><p>المفرخ: ${escapeHtml(row.hatchery || '—')}</p><p>المنتجات: ${(row.products || []).map(product => escapeHtml(product.name) + (product.is_competitor ? '' : ` · ${product.ampoule_count == null ? 'الكمية غير مسجلة' : `${number(product.ampoule_count)} أمبولة`}${product.batch_lot ? ` · ${escapeHtml(product.batch_lot)}` : ''}`)).join('، ') || '—'}</p><p>الوقت: ${escapeHtml(row.start_time || '—')} – ${escapeHtml(row.end_time || '—')}</p></div></details></td></tr>`).join('')}</tbody></table></div></div></div>`;
   profile.querySelectorAll('[data-customer-metric]').forEach(button => button.addEventListener('click', () => { state.customerMetric = button.dataset.customerMetric; renderCustomerAnalysis(rows); }));
 }
